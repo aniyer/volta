@@ -16,7 +16,7 @@ class _SplashScreenState extends State<SplashScreen> {
   // Get household name from environment or use default
   static const String householdName = String.fromEnvironment(
     'HOUSEHOLD_NAME',
-    defaultValue: 'Your Family',
+    defaultValue: 'Iyer Family',
   );
 
   @override

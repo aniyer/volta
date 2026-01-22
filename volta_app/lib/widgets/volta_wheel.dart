@@ -9,6 +9,7 @@ class WheelMission {
   final String id;
   final String title;
   final String icon;
+  final String description;
   final int points;
   final Color color;
   
@@ -16,6 +17,7 @@ class WheelMission {
     required this.id,
     required this.title,
     required this.icon,
+    required this.description,
     required this.points,
     required this.color,
   });
@@ -31,6 +33,21 @@ class VoltaWheel extends StatefulWidget {
     required this.missions,
     required this.onMissionSelected,
   });
+
+  static const List<Color> segmentColors = [
+    CyberVibrantTheme.neonViolet, // Purple
+    CyberVibrantTheme.electricTeal, // Teal
+    Color(0xFFEC4899), // Pink
+    Color(0xFFF59E0B), // Amber
+    Color(0xFF3B82F6), // Blue
+    Color(0xFF10B981), // Emerald
+    Color(0xFFFF5722), // Deep Orange (Distinct from Amber/Orange)
+    Color(0xFFEF4444), // Red
+    Color(0xFF06B6D4), // Cyan (Distinct from Teal)
+    Color(0xFF8D6E63), // Brown
+    Color(0xFF6366F1), // Indigo
+    Color(0xFF84CC16), // Lime
+  ];
 
   @override
   State<VoltaWheel> createState() => _VoltaWheelState();
@@ -48,15 +65,7 @@ class _VoltaWheelState extends State<VoltaWheel>
   
   final Random _random = Random();
   
-  // Colors for wheel segments
-  static const List<Color> segmentColors = [
-    CyberVibrantTheme.neonViolet,
-    CyberVibrantTheme.electricTeal,
-    Color(0xFFEC4899), // Pink
-    Color(0xFFF59E0B), // Amber
-    Color(0xFF3B82F6), // Blue
-    Color(0xFF10B981), // Emerald
-  ];
+
 
   @override
   void initState() {
@@ -164,20 +173,25 @@ class _VoltaWheelState extends State<VoltaWheel>
 
   @override
   Widget build(BuildContext context) {
+    // Increased size to fit text
+    // Increased size to fit text
+    const double wheelSize = 400; 
+    const double painterSize = 380;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // The Wheel
         SizedBox(
-          width: 320,
-          height: 320,
+          width: wheelSize,
+          height: wheelSize,
           child: Stack(
             alignment: Alignment.center,
             children: [
               // Outer glow ring
               Container(
-                width: 310,
-                height: 310,
+                width: wheelSize - 10,
+                height: wheelSize - 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
@@ -194,10 +208,10 @@ class _VoltaWheelState extends State<VoltaWheel>
               Transform.rotate(
                 angle: _currentRotation,
                 child: CustomPaint(
-                  size: const Size(300, 300),
+                  size: const Size(painterSize, painterSize),
                   painter: WheelPainter(
                     missions: widget.missions,
-                    colors: segmentColors,
+                    colors: VoltaWheel.segmentColors,
                   ),
                 ),
               ),

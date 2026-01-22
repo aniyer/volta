@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:confetti/confetti.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/cyber_vibrant_theme.dart';
 import '../services/auth_service.dart';
 import '../services/pocketbase_service.dart';
 import '../services/missions_service.dart';
 import '../widgets/volta_wheel.dart';
+import '../utils/icon_mapper.dart';
 
 /// Main home screen with the Volta Wheel
 class HomeScreen extends StatefulWidget {
@@ -33,9 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     
     // Initialize previous points
+    // Initialize previous points
+    _loadLastCelebratedPoints();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _previousPoints = context.read<AuthService>().points;
         _loadMissions();
       }
     });
@@ -55,15 +59,18 @@ class _HomeScreenState extends State<HomeScreen> {
       
       if (mounted) {
         setState(() {
-          _missions = records.map((r) {
+          _missions = List.generate(records.length, (index) {
+            final r = records[index];
             return WheelMission(
               id: r.id,
               title: r.getStringValue('title'),
               icon: r.getStringValue('icon'),
+              description: r.getStringValue('description'),
               points: r.getIntValue('base_points'),
-              color: CyberVibrantTheme.neonViolet,
+              // Cycle through available segment colors
+              color: VoltaWheel.segmentColors[index % VoltaWheel.segmentColors.length],
             );
-          }).toList();
+          });
           _isLoading = false;
         });
       }
@@ -78,12 +85,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadLastCelebratedPoints() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    
+    final stored = prefs.getInt('last_celebrated_points');
+    if (stored != null) {
+      setState(() {
+        _previousPoints = stored;
+      });
+    } else {
+      // First run, set to current points
+      setState(() {
+        _previousPoints = context.read<AuthService>().points;
+      });
+      _updateLastCelebratedPoints(_previousPoints ?? 0);
+    }
+  }
+
+  Future<void> _updateLastCelebratedPoints(int points) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_celebrated_points', points);
+  }
+
   void _onMissionSelected(WheelMission mission) {
     setState(() {
       _selectedMission = mission;
     });
     
-    _confettiController.play();
+    // _confettiController.play(); // Removed confetti on spinner stop
     
     // Show mission dialog
     _showMissionDialog(mission);
@@ -110,8 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: BoxShape.circle,
                 gradient: CyberVibrantTheme.primaryGradient,
               ),
-              child: const Icon(
-                Icons.star,
+              child: Icon(
+                IconMapper.getIcon(mission.icon),
                 color: Colors.white,
                 size: 32,
               ),
@@ -131,6 +161,15 @@ class _HomeScreenState extends State<HomeScreen> {
               style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 8),
+            if (mission.description.isNotEmpty)
+              Text(
+                mission.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: CyberVibrantTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -253,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _confettiController.play();
         _showCelebrationOverlay(diff); // Define this method
+        _updateLastCelebratedPoints(auth.points);
       });
     } else if (_previousPoints == null) {
       _previousPoints = auth.points;

@@ -5,7 +5,11 @@
 A self-hosted, gamified household mission center that transforms domestic friction into a high-energy competition.
 
 ## ✨ Features
-- **Gamified Chores**: Earn points for completing missions.
+- **Gamified Chores**: Earn Volts for completing tactical missions (Sector Decon, Vacuum Ops, etc.).
+- **Bazaar Rewards**: Spend Volts on real-world rewards (Arctic Expedition, Gaming Pass, etc.).
+- **Dynamic Visuals**: 
+  - **Volta Wheel**: Large, interactive spinner with unique colors for every mission.
+  - **Material Icons**: Visual indicators for every mission and reward.
 - **Leaderboards**: Compete with family members for top ranks.
 - **Profile Customization**: Choose from fun "Big Smile" avatars or upload your own.
 - **Real-time Sync**: Points and updates sync instantly across devices.

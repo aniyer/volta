@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../theme/cyber_vibrant_theme.dart';
 import '../services/auth_service.dart';
 import '../services/pocketbase_service.dart';
+import '../utils/icon_mapper.dart';
 
 /// Reward shop (Bazaar) screen
 class BazaarScreen extends StatefulWidget {
@@ -36,6 +37,8 @@ class _BazaarScreenState extends State<BazaarScreen> {
           _items = result.items.map((r) => BazaarItem(
             id: r.id,
             name: r.getStringValue('item_name'),
+            description: r.getStringValue('description'),
+            icon: r.getStringValue('icon'),
             cost: r.getIntValue('cost'),
             stock: r.getIntValue('stock'),
           )).toList();
@@ -83,6 +86,15 @@ class _BazaarScreenState extends State<BazaarScreen> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
+            if (item.description.isNotEmpty)
+              Text(
+                item.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: CyberVibrantTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 16),
             Text(
               'This will discharge ${item.cost} Volts',
               style: Theme.of(context).textTheme.bodyLarge,
@@ -218,19 +230,50 @@ class _BazaarScreenState extends State<BazaarScreen> {
                   onTap: inStock ? () => _claimItem(item) : null,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: CyberVibrantTheme.darkCard,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          CyberVibrantTheme.darkCard,
+                          // Tint with a unique color based on index
+                          Color.lerp(
+                            CyberVibrantTheme.darkCard,
+                            [
+                              CyberVibrantTheme.neonViolet,
+                              CyberVibrantTheme.electricTeal,
+                              Colors.pink,
+                              Colors.orange,
+                              Colors.blue,
+                            ][index % 5],
+                            0.15,
+                          )!,
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: canAfford && inStock
-                            ? CyberVibrantTheme.withAlpha(CyberVibrantTheme.neonViolet, 0.5)
-                            : Colors.transparent,
+                            ? [
+                                CyberVibrantTheme.neonViolet,
+                                CyberVibrantTheme.electricTeal,
+                                Colors.pink,
+                                Colors.orange,
+                                Colors.blue,
+                              ][index % 5]
+                            : CyberVibrantTheme.withAlpha(Colors.grey, 0.1),
                         width: 2,
                       ),
                       boxShadow: canAfford && inStock
                           ? [
                               BoxShadow(
-                                color: CyberVibrantTheme.withAlpha(CyberVibrantTheme.neonViolet, 0.2),
+                                color: [
+                                  CyberVibrantTheme.neonViolet,
+                                  CyberVibrantTheme.electricTeal,
+                                  Colors.pink,
+                                  Colors.orange,
+                                  Colors.blue,
+                                ][index % 5].withOpacity(0.3),
                                 blurRadius: 12,
+                                spreadRadius: 2,
                               ),
                             ]
                           : null,
@@ -256,7 +299,7 @@ class _BazaarScreenState extends State<BazaarScreen> {
                                     ),
                             ),
                             child: Icon(
-                              Icons.card_giftcard,
+                              IconMapper.getIcon(item.icon),
                               color: Colors.white,
                               size: 28,
                             ),
@@ -273,9 +316,24 @@ class _BazaarScreenState extends State<BazaarScreen> {
                                   : CyberVibrantTheme.textMuted,
                             ),
                             textAlign: TextAlign.center,
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
+                          if (item.description.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              item.description,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: inStock 
+                                    ? Colors.white70
+                                    : CyberVibrantTheme.textMuted,
+                                fontSize: 10,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                           
                           const SizedBox(height: 8),
                           
@@ -347,12 +405,16 @@ class _BazaarScreenState extends State<BazaarScreen> {
 class BazaarItem {
   final String id;
   final String name;
+  final String description;
+  final String icon;
   final int cost;
   final int stock;
 
   const BazaarItem({
     required this.id,
     required this.name,
+    required this.description,
+    required this.icon,
     required this.cost,
     required this.stock,
   });

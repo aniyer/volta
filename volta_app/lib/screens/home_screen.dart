@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/pocketbase_service.dart';
 import '../services/missions_service.dart';
 import '../widgets/volta_wheel.dart';
+import '../utils/icon_mapper.dart';
 
 /// Main home screen with the Volta Wheel
 class HomeScreen extends StatefulWidget {
@@ -58,15 +59,18 @@ class _HomeScreenState extends State<HomeScreen> {
       
       if (mounted) {
         setState(() {
-          _missions = records.map((r) {
+          _missions = List.generate(records.length, (index) {
+            final r = records[index];
             return WheelMission(
               id: r.id,
               title: r.getStringValue('title'),
               icon: r.getStringValue('icon'),
+              description: r.getStringValue('description'),
               points: r.getIntValue('base_points'),
-              color: CyberVibrantTheme.neonViolet,
+              // Cycle through available segment colors
+              color: VoltaWheel.segmentColors[index % VoltaWheel.segmentColors.length],
             );
-          }).toList();
+          });
           _isLoading = false;
         });
       }
@@ -136,8 +140,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 shape: BoxShape.circle,
                 gradient: CyberVibrantTheme.primaryGradient,
               ),
-              child: const Icon(
-                Icons.star,
+              child: Icon(
+                IconMapper.getIcon(mission.icon),
                 color: Colors.white,
                 size: 32,
               ),
@@ -157,6 +161,15 @@ class _HomeScreenState extends State<HomeScreen> {
               style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 8),
+            if (mission.description.isNotEmpty)
+              Text(
+                mission.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: CyberVibrantTheme.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

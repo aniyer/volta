@@ -51,13 +51,17 @@ class _MissionSubmitScreenState extends State<MissionSubmitScreen> {
       final records = await _missionsService.getActiveMissions();
       if (mounted) {
         setState(() {
-          _availableMissions = records.map((r) => WheelMission(
-            id: r.id,
-            title: r.getStringValue('title'),
-            icon: r.getStringValue('icon'),
-            points: r.getIntValue('base_points'),
-            color: CyberVibrantTheme.neonViolet,
-          )).toList();
+          _availableMissions = List.generate(records.length, (index) {
+            final r = records[index];
+            return WheelMission(
+              id: r.id,
+              title: r.getStringValue('title'),
+              icon: r.getStringValue('icon'),
+              description: r.getStringValue('description'),
+              points: r.getIntValue('base_points'),
+              color: VoltaWheel.segmentColors[index % VoltaWheel.segmentColors.length],
+            );
+          });
           _isLoadingMissions = false;
         });
       }

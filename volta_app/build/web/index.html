@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- SEO & Social -->
+  <title>VOLTA | Spin the chore. Own the turn.</title>
+  <meta name="description" content="A gamified household mission center that transforms chores into an exciting competition.">
+  <meta name="keywords" content="chores, family, gamification, household, tasks, rewards">
+  <meta name="author" content="VOLTA Team">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#8B5CF6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VOLTA">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Splash screen styling */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0F172A;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(180deg, #0F172A 0%, #1E1B4B 100%);
+    }
+    
+    .loading-logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 60px rgba(139, 92, 246, 0.6);
+      animation: pulse 2s infinite;
+    }
+    
+    .loading-logo span {
+      font-size: 64px;
+      font-weight: 900;
+      color: white;
+    }
+    
+    .loading-text {
+      margin-top: 24px;
+      font-size: 14px;
+      color: #94A3B8;
+      letter-spacing: 2px;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 60px rgba(139, 92, 246, 0.6);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 80px rgba(139, 92, 246, 0.8);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading screen shown while Flutter initializes -->
+  <div class="loading-container" id="loading">
+    <div class="loading-logo">
+      <span>V</span>
+    </div>
+    <p class="loading-text">LOADING...</p>
+  </div>
+  
+  <!-- Flutter app loads here -->
+  <script src="flutter_bootstrap.js" async></script>
+  
+  <script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('flutter_service_worker.js?v=3275667444').then(function(reg) {
+          console.log('ServiceWorker registered: ', reg.scope);
+        }).catch(function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+    
+    // Hide loading screen when Flutter is ready
+    window.addEventListener('flutter-first-frame', function() {
+      const loading = document.getElementById('loading');
+      if (loading) {
+        loading.style.transition = 'opacity 0.3s';
+        loading.style.opacity = '0';
+        setTimeout(() => loading.remove(), 300);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# PocketBase
+pb_data/
+
+# MacOS
+.DS_Store
+
+# Flutter
+volta_app/.dart_tool/
+volta_app/build/
+volta_app/.flutter-plugins
+volta_app/.flutter-plugins-dependencies
+volta_app/.pub/
+volta_app/.packages
+volta_app/pubspec.lock
+
+# IDEs
+.idea/
+.vscode/
+*.iml

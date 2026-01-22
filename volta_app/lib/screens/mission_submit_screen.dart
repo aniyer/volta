@@ -200,33 +200,70 @@ class _MissionSubmitScreenState extends State<MissionSubmitScreen> {
                     else if (_availableMissions.isEmpty)
                       const Center(child: Text('No active missions found.'))
                     else
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: CyberVibrantTheme.darkCard,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: CyberVibrantTheme.withAlpha(CyberVibrantTheme.neonViolet, 0.3),
-                          ),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<WheelMission>(
-                            value: _mission,
-                            focusNode: _dropdownFocusNode,
-                            hint: const Text('Choose what you did...'),
-                            isExpanded: true,
-                            dropdownColor: CyberVibrantTheme.darkCard,
-                            items: _availableMissions.map((m) {
-                              return DropdownMenuItem(
-                                value: m,
-                                child: Text(m.title),
+                      Builder(
+                        builder: (context) {
+                          return GestureDetector(
+                            onTap: () {
+                              final RenderBox button = context.findRenderObject() as RenderBox;
+                              final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+                              
+                              final RelativeRect position = RelativeRect.fromRect(
+                                Rect.fromPoints(
+                                  button.localToGlobal(Offset(0, button.size.height), ancestor: overlay),
+                                  button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+                                ),
+                                Offset.zero & overlay.size,
                               );
-                            }).toList(),
-                            onChanged: (val) {
-                              setState(() => _mission = val);
+
+                              showMenu<WheelMission>(
+                                context: context,
+                                position: position,
+                                elevation: 8,
+                                color: CyberVibrantTheme.darkCard,
+                                constraints: BoxConstraints.tightFor(width: button.size.width),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: CyberVibrantTheme.withAlpha(CyberVibrantTheme.neonViolet, 0.3),
+                                  ),
+                                ),
+                                items: _availableMissions.map((m) {
+                                  return PopupMenuItem(
+                                    value: m,
+                                    child: Text(m.title, style: const TextStyle(color: Colors.white)),
+                                  );
+                                }).toList(),
+                              ).then((value) {
+                                if (value != null) {
+                                  setState(() => _mission = value);
+                                }
+                              });
                             },
-                          ),
-                        ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: CyberVibrantTheme.darkCard,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: CyberVibrantTheme.withAlpha(CyberVibrantTheme.neonViolet, 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _mission?.title ?? 'Choose what you did...',
+                                    style: TextStyle(
+                                      color: _mission != null ? Colors.white : CyberVibrantTheme.textMuted,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const Icon(Icons.arrow_drop_down, color: CyberVibrantTheme.textSecondary),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
                       ),
                   ],
                 ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:confetti/confetti.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/cyber_vibrant_theme.dart';
 import '../services/auth_service.dart';
 import '../services/pocketbase_service.dart';
@@ -33,9 +34,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     
     // Initialize previous points
+    // Initialize previous points
+    _loadLastCelebratedPoints();
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _previousPoints = context.read<AuthService>().points;
         _loadMissions();
       }
     });
@@ -78,12 +81,35 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadLastCelebratedPoints() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    
+    final stored = prefs.getInt('last_celebrated_points');
+    if (stored != null) {
+      setState(() {
+        _previousPoints = stored;
+      });
+    } else {
+      // First run, set to current points
+      setState(() {
+        _previousPoints = context.read<AuthService>().points;
+      });
+      _updateLastCelebratedPoints(_previousPoints ?? 0);
+    }
+  }
+
+  Future<void> _updateLastCelebratedPoints(int points) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('last_celebrated_points', points);
+  }
+
   void _onMissionSelected(WheelMission mission) {
     setState(() {
       _selectedMission = mission;
     });
     
-    _confettiController.play();
+    // _confettiController.play(); // Removed confetti on spinner stop
     
     // Show mission dialog
     _showMissionDialog(mission);
@@ -253,6 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _confettiController.play();
         _showCelebrationOverlay(diff); // Define this method
+        _updateLastCelebratedPoints(auth.points);
       });
     } else if (_previousPoints == null) {
       _previousPoints = auth.points;

@@ -65,14 +65,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       (e) async {
         if (e.action == 'create' || e.action == 'update') {
           final record = e.record;
-          if (record != null && record.getStringValue('status') == 'redo' && record.getStringValue('user_id') == auth.user!.id) {
+          if (record != null && record.getStringValue('user_id') == auth.user!.id) {
             
-            // Re-fetch strictly to ensure full expansion and data consistency
+            // 1. Always refresh the list to keep state clean (handles removal from list)
             await _checkForRedoMissions();
             
-            // Trigger visual pulse for new updates
-            if (mounted) {
-              _redoPulseController.forward().then((_) => _redoPulseController.reverse());
+            // 2. Only Pulse if it is a NEW/ACTIVE Redo
+            if (record.getStringValue('status') == 'redo') {
+               if (mounted) {
+                 _redoPulseController.forward().then((_) => _redoPulseController.reverse());
+               }
             }
           }
         }
@@ -224,6 +226,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           },
                         );
                         print('REDO DEBUG: Navigation complete');
+                        
+                        // 4. Manual Refresh after return
+                        await _checkForRedoMissions();
                         
                       } catch (e, stack) {
                         print('REDO ERROR: $e');

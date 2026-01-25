@@ -115,15 +115,62 @@ class MissionsService {
     }
   }
   
-  /// Reject a mission (parent action)
+  /// Reject a mission (parent action) - sends back for redo
   Future<bool> rejectMission(String historyId) async {
     try {
       await _pbService.client
           .collection('history')
-          .update(historyId, body: {'status': 'pending'});
+          .update(historyId, body: {'status': 'redo'});
       return true;
     } catch (e) {
       debugPrint('Failed to reject mission: $e');
+      return false;
+    }
+  }
+
+  /// Get missions marked for redo for a user
+  Future<List<RecordModel>> getRedoMissions(String userId) async {
+    try {
+      final result = await _pbService.client
+          .collection('history')
+          .getList(
+            filter: 'status = "redo" && user_id = "$userId"',
+            expand: 'mission_id',
+            sort: '-timestamp',
+          );
+      return result.items;
+    } catch (e) {
+      debugPrint('Failed to get redo missions: $e');
+      return [];
+    }
+  }
+
+  /// Resubmit a mission that was marked for redo
+  Future<bool> resubmitMission({
+    required String historyId,
+    required List<int> photoBytes,
+    required String fileName,
+  }) async {
+    try {
+      await _pbService.client
+          .collection('history')
+          .update(
+            historyId, 
+            body: {
+              'status': 'review',
+              'timestamp': DateTime.now().toIso8601String(), // Reset timestamp to now
+            },
+            files: [
+              http.MultipartFile.fromBytes(
+                'photo_proof',
+                photoBytes,
+                filename: fileName,
+              ),
+            ],
+          );
+      return true;
+    } catch (e) {
+      debugPrint('Failed to resubmit mission: $e');
       return false;
     }
   }

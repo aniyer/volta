@@ -1,125 +1,65 @@
-# VOLTA 🎡
+# Volta ⚡
 
-> **"Spin the chore. Own the turn."**
+Volta is a gamified chore and mission tracking application built for families. It combines a Flutter web frontend with a PocketBase backend to create an engaging experience where kids earn "Volts" (points) for completing tasks, which can be redeemed for rewards.
 
-A self-hosted, gamified household mission center that transforms domestic friction into a high-energy competition.
+## 🚀 Features
 
-## ✨ Features
-- **Gamified Chores**: Earn Volts for completing tactical missions (Sector Decon, Vacuum Ops, etc.).
-- **Bazaar Rewards**: Spend Volts on real-world rewards (Arctic Expedition, Gaming Pass, etc.).
-- **Dynamic Visuals**: 
-  - **Volta Wheel**: Large, interactive spinner with unique colors for every mission.
-  - **Material Icons**: Visual indicators for every mission and reward.
-- **Leaderboards**: Compete with family members for top ranks.
-- **Profile Customization**: Choose from fun "Big Smile" avatars or upload your own.
-- **Real-time Sync**: Points and updates sync instantly across devices.
-- **Parent/Child Roles**: Secure parents mode for mission approval.
+-   **Gamified Missions**: Kids spin a wheel to get assigned missions.
+-   **Real-time Updates**: Instant notifications for parents (approvals) and kids (redos).
+-   **Review System**: Parents can approve or reject (send for redo) missions with photo proof.
+-   **Redo Workflow**: 
+    -   Missions sent back for redo appear in a dedicated "Inbox".
+    -   Kids receive a **visual pulse** notification and can resubmit directly.
+-   **Celebrations**: **Electrifying** custom lightning spark effects when points are earned.
+-   **Leaderboard**: Track progress and compete.
+-   **Bazaar**: Redeem Volts for real-world rewards.
 
-## 🏠 Homelab Quick Start
+## 🛠️ Tech Stack
+
+-   **Frontend**: Flutter (Web)
+    -   `confetti`: Custom particle effects
+    -   `provider`: State management
+    -   `pocketbase`: Dart SDK
+-   **Backend**: PocketBase (Go)
+    -   Host: `0.0.0.0:8090`
+    -   Data persistence via Docker volume
+-   **Infrastructure**: Docker Compose
+    -   Nginx: Reverse proxy for serving the Flutter web build.
+    -   Make: Simplified command interface.
+
+## 📦 Setup & Run
 
 ### Prerequisites
-- Docker & Docker Compose installed
-- A home server (Raspberry Pi 4+, Synology NAS, mini-PC, etc.)
+-   Docker & Docker Compose
+-   Make (optional, but recommended)
 
-### 1. Clone & Start
+### Commands
 
+**Start everything:**
 ```bash
-git clone https://github.com/yourusername/volta.git
-cd volta
-
-# Start the backend first
-docker compose up -d volta-backend
-
-# Wait for PocketBase to be healthy
-docker compose logs -f volta-backend
+make up
 ```
+*Access the app at `http://localhost` (or your configured domain).*
 
-### 2. Configure PocketBase Admin
-
-1. Open `http://<your-server-ip>:8090/_/` in your browser
-2. Create your admin account (first-time setup)
-3. The collections will be auto-created from migrations
-
-### 3. Build & Deploy Flutter Web
-
+**Rebuild Frontend:**
 ```bash
-# Build the Flutter PWA (runs in Docker, no local Flutter needed!)
-docker compose --profile build run --rm flutter-build
-
-# Start the frontend
-docker compose up -d volta-frontend
+make deploy
 ```
 
-### 4. Access VOLTA
-
-- **App**: `http://<your-server-ip>:8080`
-- **Admin**: `http://<your-server-ip>:8090/_/`
-
----
-
-## 📦 PocketBase Collections
-
-VOLTA uses the following collections (auto-created via migrations):
-
-| Collection | Purpose |
-|------------|---------|
-| `users` | Player accounts with points & roles |
-| `missions` | Chore pool with point values |
-| `history` | Mission completion log |
-| `bazaar` | Reward shop items |
-
----
-
-## 🎨 Environment Variables
-
-Create a `.env` file in the project root:
-
-```env
-# PocketBase URL (used by Flutter app)
-PB_URL=http://localhost:8090
-
-# Your household name (shown on splash screen)
-HOUSEHOLD_NAME=The Smith Family
-```
-
----
-
-## 🛠️ Development
-
-### Rebuild Frontend
+**Stop services:**
 ```bash
-docker compose --profile build run --rm flutter-build
-docker compose restart volta-frontend
+make down
 ```
 
-### View Logs
+**View Logs:**
 ```bash
-docker compose logs -f
+make logs
 ```
 
-### Stop Everything
-```bash
-docker compose down
-```
+## 🔐 Accounts (Default)
 
----
+-   **Parent**: `parent@example.com` / `12345678`
+-   **Child**: `child@example.com` / `12345678`
 
-## 📱 PWA Installation
-
-VOLTA is a Progressive Web App! On mobile:
-1. Open `http://<your-server-ip>:8080` in Chrome/Safari
-2. Tap "Add to Home Screen"
-3. Enjoy the native app experience
-
----
-
-## 🔧 Tech Stack
-
-- **Frontend**: Flutter Web (PWA)
-- **Backend**: PocketBase (Go)
-- **Database**: SQLite
-- **Infrastructure**: Docker Compose
-
----
-
-Built with ⚡ by the VOLTA team
+## 🎨 Theme
+The app uses a "Cyber Vibrant" theme with neon colors (Electric Teal, Magma Orange, Neon Violet) and a dark, modern interface.

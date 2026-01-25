@@ -8,6 +8,7 @@ import '../services/pocketbase_service.dart';
 import '../services/missions_service.dart';
 import '../widgets/volta_wheel.dart';
 import '../utils/icon_mapper.dart';
+import 'package:pocketbase/pocketbase.dart';
 
 /// Main home screen with the Volta Wheel
 class HomeScreen extends StatefulWidget {
@@ -17,21 +18,29 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late MissionsService _missionsService;
   late ConfettiController _confettiController;
+  late AnimationController _redoPulseController;
   
   List<WheelMission> _missions = [];
   bool _isLoading = true;
   WheelMission? _selectedMission;
   int _currentIndex = 0;
   int? _previousPoints; // Track points for celebration
+  List<RecordModel> _redoMissions = []; // Persistent redo list
 
   @override
   void initState() {
     super.initState();
     _confettiController = ConfettiController(
       duration: const Duration(seconds: 3), // Increased duration
+    );
+    _redoPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+      lowerBound: 1.0,
+      upperBound: 1.4,
     );
     
     // Initialize previous points
@@ -41,13 +50,41 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadMissions();
+        _checkForRedoMissions();
+        _subscribeToRedoUpdates();
       }
     });
+  }
+
+  void _subscribeToRedoUpdates() {
+    final auth = context.read<AuthService>();
+    if (auth.isParent || auth.user == null) return;
+
+    context.read<PocketBaseService>().client.collection('history').subscribe(
+      '*', 
+      (e) async {
+        if (e.action == 'create' || e.action == 'update') {
+          final record = e.record;
+          if (record != null && record.getStringValue('status') == 'redo' && record.getStringValue('user_id') == auth.user!.id) {
+            
+            // Re-fetch strictly to ensure full expansion and data consistency
+            await _checkForRedoMissions();
+            
+            // Trigger visual pulse for new updates
+            if (mounted) {
+              _redoPulseController.forward().then((_) => _redoPulseController.reverse());
+            }
+          }
+        }
+      },
+      filter: 'user_id = "${auth.user!.id}"', // Server-side filter if supported, otherwise client check above handles it safely
+    );
   }
 
   @override
   void dispose() {
     _confettiController.dispose();
+    _redoPulseController.dispose();
     super.dispose();
   }
 
@@ -83,6 +120,151 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  Future<void> _checkForRedoMissions() async {
+    final auth = context.read<AuthService>();
+    if (auth.isParent || auth.user == null) return; // Only for kids
+    
+    _missionsService = MissionsService(context.read<PocketBaseService>());
+    final redoMissions = await _missionsService.getRedoMissions(auth.user!.id);
+    
+    if (mounted) {
+      setState(() {
+        _redoMissions = redoMissions;
+      });
+      
+      if (_redoMissions.isNotEmpty) {
+      if (_redoMissions.isNotEmpty) {
+        // Just pulse on load if items exist
+        _redoPulseController.forward().then((_) => _redoPulseController.reverse());
+      }
+      }
+    }
+  }
+
+  void _showRedoDialog(List<dynamic> redoMissions) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: CyberVibrantTheme.darkCard,
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: CyberVibrantTheme.magmaOrange, size: 28),
+            const SizedBox(width: 12),
+            Text('Mission Redo!', style: CyberVibrantTheme.neonText(color: CyberVibrantTheme.magmaOrange)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Some missions were sent back for a re-do. Needs better proof!',
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            ...redoMissions.map((record) {
+              final missionList = record.expand['mission_id'] ?? [];
+              final title = missionList.isNotEmpty ? missionList.first.getStringValue('title') : 'Unknown Mission';
+              final points = missionList.isNotEmpty ? missionList.first.getIntValue('base_points') : 0;
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.white10,
+                    child: Icon(Icons.refresh, color: CyberVibrantTheme.magmaOrange),
+                  ),
+                  title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  subtitle: Text('+$points Volts waiting...', style: const TextStyle(color: CyberVibrantTheme.electricTeal)),
+                  trailing: ElevatedButton(
+                    onPressed: () async {
+                      print('REDO DEBUG: Button clicked for record ${record.id}');
+                      
+                      try {
+                        // 1. Pop the dialog first
+                        Navigator.of(dialogContext).pop(); 
+                        
+                        // 2. Validate Data
+                        final missionList = record.expand['mission_id'];
+                        print('REDO DEBUG: Mission list: $missionList');
+                        
+                        if (missionList == null || missionList.isEmpty) {
+                          throw 'Mission data not found (expand failed)';
+                        }
+                        
+                        final m = missionList.first;
+                        print('REDO DEBUG: Found mission: ${m.id}');
+                        
+                        final wm = WheelMission(
+                          id: m.id,
+                          title: m.getStringValue('title'),
+                          icon: m.getStringValue('icon'),
+                          description: m.getStringValue('description'),
+                          points: m.getIntValue('base_points'),
+                          color: CyberVibrantTheme.neonViolet,
+                        );
+                        
+                        // 3. Navigate
+                        print('REDO DEBUG: Navigating to submit screen...');
+                        if (!context.mounted) {
+                           print('REDO DEBUG: Context not mounted, cannot navigate');
+                           return;
+                        }
+                        
+                        await Navigator.pushNamed(
+                          context,
+                          '/submit',
+                          arguments: {
+                            'mission': wm,
+                            'historyId': record.id,
+                          },
+                        );
+                        print('REDO DEBUG: Navigation complete');
+                        
+                      } catch (e, stack) {
+                        print('REDO ERROR: $e');
+                        print(stack);
+                        
+                        if (context.mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Error'),
+                              content: Text('Failed to start redo:\n$e'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('OK'),
+                                )
+                              ],
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: CyberVibrantTheme.magmaOrange,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('REDO'),
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('LATER', style: TextStyle(color: Colors.white54)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadLastCelebratedPoints() async {
@@ -401,6 +583,52 @@ class _HomeScreenState extends State<HomeScreen> {
                       // RIGHT: Points & Leaderboard
                       Row(
                         children: [
+                          /// REDO INBOX ICON (Badged) - Moved here
+                          if (_redoMissions.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: ScaleTransition(
+                                scale: _redoPulseController,
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    IconButton(
+                                      onPressed: () => _showRedoDialog(_redoMissions),
+                                      icon: const Icon(Icons.mark_email_unread_rounded, color: CyberVibrantTheme.magmaOrange, size: 28),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: CyberVibrantTheme.darkCard,
+                                        padding: const EdgeInsets.all(8),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 16,
+                                          minHeight: 16,
+                                        ),
+                                        child: Text(
+                                          '${_redoMissions.length}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
                            // Points badge
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -448,6 +676,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 
+
+                
                 // The Wheel
                 Expanded(
                   child: Center(
@@ -471,21 +701,24 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ConfettiWidget(
               confettiController: _confettiController,
               blastDirectionality: BlastDirectionality.explosive,
-              particleDrag: 0.05,
-              emissionFrequency: 0.05,
-              numberOfParticles: 30,
-              gravity: 0.2,
+              particleDrag: 0.04,
+              emissionFrequency: 0.08,
+              numberOfParticles: 40,
+              gravity: 0.3,
+              minBlastForce: 15,
+              maxBlastForce: 30,
+              createParticlePath: drawLightning,
               colors: const [
-                CyberVibrantTheme.neonViolet,
-                CyberVibrantTheme.electricTeal,
-                CyberVibrantTheme.magmaOrange,
+                Colors.yellowAccent,
+                Colors.cyanAccent,
                 Colors.white,
+                Color(0xFF00FF00),
               ],
             ),
           ),
         ],
       ),
-      
+
       // Bottom navigation
       bottomNavigationBar: NavigationBar(
         backgroundColor: CyberVibrantTheme.darkSurface,
@@ -523,5 +756,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
+  Path drawLightning(Size size) {
+    double w = size.width;
+    double h = size.height;
+    Path path = Path();
+    path.moveTo(w * 0.4, 0);
+    path.lineTo(w, h * 0.3);
+    path.lineTo(w * 0.6, h * 0.3); // Cut back
+    path.lineTo(w * 0.9, h);
+    path.lineTo(0, h * 0.4);
+    path.lineTo(w * 0.3, h * 0.4); // Cut forward
+    path.close();
+    return path;
+  }
 }

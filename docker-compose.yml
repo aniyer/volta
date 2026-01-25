@@ -23,6 +23,7 @@ services:
       context: .
       dockerfile: Dockerfile.flutter
       target: builder
+    network_mode: bridge # Use bridge to ensure internet access for pub get
     container_name: volta_build
     volumes:
       - ./volta_app:/app

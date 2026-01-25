@@ -7,7 +7,12 @@ WORKDIR /app
 COPY volta_app/ ./
 
 # Get dependencies and build
-RUN flutter pub get && flutter build web --release
+# Use custom mirror for reliability
+ENV PUB_HOSTED_URL=https://pub.flutter-io.cn
+ENV FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+
+# Get dependencies and build with verbose output
+RUN flutter pub get -v && flutter build web --release
 
 # Production stage - lightweight nginx
 FROM nginx:alpine AS production

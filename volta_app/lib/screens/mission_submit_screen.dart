@@ -32,6 +32,8 @@ class _MissionSubmitScreenState extends State<MissionSubmitScreen> {
     super.dispose();
   }
 
+  String? _historyId;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -40,6 +42,14 @@ class _MissionSubmitScreenState extends State<MissionSubmitScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is WheelMission) {
       setState(() => _mission = args);
+    } else if (args is Map) {
+      // Handle redo case
+      if (args['mission'] is WheelMission) {
+        setState(() {
+          _mission = args['mission'];
+          _historyId = args['historyId'];
+        });
+      }
     } else if (_mission == null) {
       _loadMissions();
     }
@@ -96,17 +106,30 @@ class _MissionSubmitScreenState extends State<MissionSubmitScreen> {
       
       final photoBytes = await _photo!.readAsBytes();
       
-      final result = await missionsService.submitMission(
-        missionId: _mission!.id,
-        userId: auth.user!.id,
-        photoBytes: photoBytes,
-        fileName: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg',
-      );
+      bool? success;
       
-      if (result != null && mounted) {
+      if (_historyId != null) {
+        // RESUBMIT (REDO)
+        success = await missionsService.resubmitMission(
+          historyId: _historyId!,
+          photoBytes: photoBytes,
+          fileName: 'proof_redo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+      } else {
+        // NEW SUBMISSION
+        final result = await missionsService.submitMission(
+          missionId: _mission!.id,
+          userId: auth.user!.id,
+          photoBytes: photoBytes,
+          fileName: 'proof_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        );
+        success = result != null;
+      }
+      
+      if (success == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mission submitted for review! 🎉'),
+          SnackBar(
+            content: Text(_historyId != null ? 'Mission re-submitted! 🚀' : 'Mission submitted for review! 🎉'),
             backgroundColor: CyberVibrantTheme.electricTeal,
           ),
         );
